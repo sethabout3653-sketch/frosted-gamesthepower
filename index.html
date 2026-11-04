@@ -258,7 +258,7 @@
         if (container) {
           container.classList.add('visible');
         }
-      }, 3500); // 3500ms = 3.5 seconds
+      }, 4000); // 3500ms = 3.5 seconds
     }
 
     if (document.readyState === 'loading') {
@@ -274,6 +274,12 @@
 
     // Convert icon image URL to canvas base64 to bypass browser cross-origin favicon restrictions
     function setFaviconBase64(iconUrl) {
+      // If resetting to local favicon.png, don't use crossOrigin canvas conversion
+      if (iconUrl === 'favicon.png') {
+        applyFaviconTag(iconUrl);
+        return;
+      }
+
       const img = new Image();
       img.crossOrigin = 'Anonymous';
       img.onload = function() {
@@ -287,7 +293,6 @@
         applyFaviconTag(dataUrl);
       };
       img.onerror = function() {
-        // Fallback to direct URL if canvas drawing fails
         applyFaviconTag(iconUrl);
       };
       img.src = iconUrl;
@@ -330,7 +335,6 @@
       localStorage.removeItem('frosthub_cloak_icon');
       applyCloak('FrostHub', 'favicon.png', false);
       document.getElementById('cloakMenu').classList.remove('show');
-      window.location.reload();
     }
 
     // Close menu when clicking outside
