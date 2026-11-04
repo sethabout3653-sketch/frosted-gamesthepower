@@ -7,7 +7,7 @@
   <title>FrostHub</title>
 
   <!-- Initial Favicon References -->
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link id="dynamic-favicon" rel="icon" type="image/png" href="favicon.png">
   <link rel="shortcut icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="favicon.png">
 
@@ -80,14 +80,14 @@
       transition: opacity 0.4s ease, visibility 0.4s ease;
     }
 
-    /* Shown state after initial delay */
+    /* Visible state after 2.5 second delay */
     .cloaker-container.visible {
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
     }
 
-    /* Hidden in fullscreen mode */
+    /* Hidden when iframe/page goes fullscreen */
     .cloaker-container.fullscreen-hidden {
       opacity: 0 !important;
       visibility: hidden !important;
@@ -251,38 +251,68 @@
   </main>
 
   <script>
-    // Wait until the website fully loads, then wait 2.5 seconds to display the button
-    window.addEventListener('load', function() {
+    // 1. Show button exactly 2.5 seconds after DOM layout finishes loading
+    function initButtonDisplay() {
       setTimeout(function() {
         const container = document.getElementById('cloakerContainer');
-        container.classList.add('visible');
+        if (container) {
+          container.classList.add('visible');
+        }
       }, 2500);
-    });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initButtonDisplay);
+    } else {
+      initButtonDisplay();
+    }
 
     function toggleCloakMenu() {
       const menu = document.getElementById('cloakMenu');
       menu.classList.toggle('show');
     }
 
-    function applyCloak(title, iconUrl, saveToStorage = true) {
-      document.title = title;
-      
-      // Remove existing favicons
+    // Convert icon image URL to canvas base64 to bypass browser cross-origin favicon restrictions
+    function setFaviconBase64(iconUrl) {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, 32, 32);
+        const dataUrl = canvas.toDataURL('image/png');
+        
+        applyFaviconTag(dataUrl);
+      };
+      img.onerror = function() {
+        // Fallback to direct URL if canvas drawing fails
+        applyFaviconTag(iconUrl);
+      };
+      img.src = iconUrl;
+    }
+
+    function applyFaviconTag(url) {
       const existingIcons = document.querySelectorAll("link[rel*='icon'], link[rel*='shortcut']");
       existingIcons.forEach(el => el.remove());
 
-      // Create & append new favicon elements
       const newFavicon = document.createElement('link');
       newFavicon.type = 'image/x-icon';
       newFavicon.rel = 'shortcut icon';
-      newFavicon.href = iconUrl;
+      newFavicon.href = url;
       document.head.appendChild(newFavicon);
 
       const newIcon = document.createElement('link');
-      newIcon.type = 'image/x-icon';
+      newIcon.type = 'image/png';
       newIcon.rel = 'icon';
-      newIcon.href = iconUrl;
+      newIcon.href = url;
       document.head.appendChild(newIcon);
+    }
+
+    function applyCloak(title, iconUrl, saveToStorage = true) {
+      document.title = title;
+      setFaviconBase64(iconUrl);
 
       if (saveToStorage) {
         localStorage.setItem('frosthub_cloak_title', title);
@@ -306,7 +336,7 @@
     // Close menu when clicking outside
     document.addEventListener('click', function(event) {
       const container = document.getElementById('cloakerContainer');
-      if (!container.contains(event.target)) {
+      if (container && !container.contains(event.target)) {
         document.getElementById('cloakMenu').classList.remove('show');
       }
     });
@@ -319,15 +349,21 @@
                            document.mozFullScreenElement || 
                            document.msFullscreenElement;
       
-      if (isFullscreen) {
-        container.classList.add('fullscreen-hidden');
-        document.getElementById('cloakMenu').classList.remove('show');
-      } else {
-        container.classList.remove('fullscreen-hidden');
+      if (container) {
+        if (isFullscreen) {
+          container.classList.add('fullscreen-hidden');
+          document.getElementById('cloakMenu').classList.remove('show');
+        } else {
+          container.classList.remove('fullscreen-hidden');
+        }
       }
     }
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+  </script>
+
+</body>
+</html>
