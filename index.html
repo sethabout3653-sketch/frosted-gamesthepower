@@ -80,7 +80,7 @@
       transition: opacity 0.4s ease, visibility 0.4s ease;
     }
 
-    /* Visible state after 2.5 second delay */
+    /* Visible state after 3.5 second delay */
     .cloaker-container.visible {
       opacity: 1;
       visibility: visible;
@@ -251,14 +251,14 @@
   </main>
 
   <script>
-    // 1. Show button exactly 2.5 seconds after DOM layout finishes loading
+    // 1. Show button exactly 3.5 seconds after DOM layout finishes loading
     function initButtonDisplay() {
       setTimeout(function() {
         const container = document.getElementById('cloakerContainer');
         if (container) {
           container.classList.add('visible');
         }
-      }, 2500);
+      }, 3500); // 3500ms = 3.5 seconds
     }
 
     if (document.readyState === 'loading') {
@@ -322,48 +322,4 @@
 
     function cloakTab(title, iconUrl) {
       applyCloak(title, iconUrl, true);
-      document.getElementById('cloakMenu').classList.remove('show');
-    }
-
-    function resetCloak() {
-      localStorage.removeItem('frosthub_cloak_title');
-      localStorage.removeItem('frosthub_cloak_icon');
-      applyCloak('FrostHub', 'favicon.png', false);
-      document.getElementById('cloakMenu').classList.remove('show');
-      window.location.reload();
-    }
-
-    // Close menu when clicking outside
-    document.addEventListener('click', function(event) {
-      const container = document.getElementById('cloakerContainer');
-      if (container && !container.contains(event.target)) {
-        document.getElementById('cloakMenu').classList.remove('show');
-      }
-    });
-
-    // Hide button when entering fullscreen mode
-    function handleFullscreenChange() {
-      const container = document.getElementById('cloakerContainer');
-      const isFullscreen = document.fullscreenElement || 
-                           document.webkitFullscreenElement || 
-                           document.mozFullScreenElement || 
-                           document.msFullscreenElement;
-      
-      if (container) {
-        if (isFullscreen) {
-          container.classList.add('fullscreen-hidden');
-          document.getElementById('cloakMenu').classList.remove('show');
-        } else {
-          container.classList.remove('fullscreen-hidden');
-        }
-      }
-    }
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-  </script>
-
-</body>
-</html>
+      document.getElementById('cloakMenu').classList.remove('show
