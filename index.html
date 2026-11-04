@@ -68,12 +68,19 @@
       }
     }
 
-    /* Tab Cloaker Control Styling */
+    /* Tab Cloaker Control Styling (Moved to Bottom Right) */
     .cloaker-container {
       position: fixed;
-      top: 14px;
+      bottom: 14px;
       right: 14px;
       z-index: 999999;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .cloaker-container.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
     }
 
     .cloaker-btn {
@@ -102,7 +109,7 @@
     .cloaker-menu {
       display: none;
       position: absolute;
-      top: calc(100% + 8px);
+      bottom: calc(100% + 8px);
       right: 0;
       background: rgba(18, 18, 18, 0.95);
       border: 1px solid rgba(255, 255, 255, 0.15);
@@ -174,8 +181,8 @@
         <img src="https://www.desmos.com/favicon.ico" alt="Desmos">
         Desmos Calculator
       </div>
-      <div class="cloaker-option" onclick="cloakTab('Clever | Portal', 'https://encrypted-tbn0.gstatic.com/images/branding/product/1x/clever_32dp.png')">
-        <img src="https://encrypted-tbn0.gstatic.com/images/q=tbn:ANd9GcRA7_xXcd6s27JQP2KAGwBRDht8GlpXCTLJe8NbeGN4MkxAnZBsKfvmRXM&s=10" alt="Clever">
+      <div class="cloaker-option" onclick="cloakTab('Clever | Portal', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRA7_xXcd6s27JQP2KAGwBRDht8GlpXCTLJe8NbeGN4MkxAnZBsKfvmRXM&s=10')">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRA7_xXcd6s27JQP2KAGwBRDht8GlpXCTLJe8NbeGN4MkxAnZBsKfvmRXM&s=10" alt="Clever">
         Clever | Portal
       </div>
       <div class="cloaker-option" onclick="cloakTab('FrostHub', 'favicon.png')">
@@ -246,6 +253,27 @@
         document.getElementById('cloakMenu').classList.remove('show');
       }
     });
+
+    // Hide button when entering fullscreen mode
+    function handleFullscreenChange() {
+      const container = document.querySelector('.cloaker-container');
+      const isFullscreen = document.fullscreenElement || 
+                           document.webkitFullscreenElement || 
+                           document.mozFullScreenElement || 
+                           document.msFullscreenElement;
+      
+      if (isFullscreen) {
+        container.classList.add('hidden');
+        document.getElementById('cloakMenu').classList.remove('show');
+      } else {
+        container.classList.remove('hidden');
+      }
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
   </script>
 
 </body>
