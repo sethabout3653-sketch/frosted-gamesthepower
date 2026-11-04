@@ -6,8 +6,8 @@
 
   <title>FrostHub</title>
 
-  <!-- Favicon References -->
-  <link id="dynamic-favicon" rel="icon" type="image/png" href="favicon.png">
+  <!-- Initial Favicon References -->
+  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="shortcut icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="favicon.png">
 
@@ -68,7 +68,7 @@
       }
     }
 
-    /* Tab Cloaker Control Styling (Moved to Bottom Right) */
+    /* Tab Cloaker Control Styling (Bottom Right) */
     .cloaker-container {
       position: fixed;
       bottom: 14px;
@@ -165,7 +165,7 @@
         <img src="https://www.google.com/favicon.ico" alt="Google">
         Google
       </div>
-      <div class="cloaker-option" onclick="cloakTab('Classes', 'https://ssl.gstatic.com/classroom/favicon.png')">
+      <div class="cloaker-option" onclick="cloakTab('Google Classroom', 'https://ssl.gstatic.com/classroom/favicon.png')">
         <img src="https://ssl.gstatic.com/classroom/favicon.png" alt="Classroom">
         Google Classroom
       </div>
@@ -232,17 +232,28 @@
     }
 
     function cloakTab(title, iconUrl) {
+      // 1. Change the Tab Title
       document.title = title;
       
-      let favicon = document.getElementById('dynamic-favicon');
-      if (!favicon) {
-        favicon = document.createElement('link');
-        favicon.id = 'dynamic-favicon';
-        favicon.rel = 'icon';
-        document.head.appendChild(favicon);
-      }
-      favicon.href = iconUrl;
-      
+      // 2. Aggressively remove all existing favicon tags to force the browser to update
+      const existingIcons = document.querySelectorAll("link[rel*='icon'], link[rel*='shortcut']");
+      existingIcons.forEach(el => el.remove());
+
+      // 3. Create and append a brand new favicon link element
+      const newFavicon = document.createElement('link');
+      newFavicon.type = 'image/x-icon';
+      newFavicon.rel = 'shortcut icon';
+      newFavicon.href = iconUrl;
+      document.head.appendChild(newFavicon);
+
+      // Also support standard icon link
+      const newIcon = document.createElement('link');
+      newIcon.type = 'image/x-icon';
+      newIcon.rel = 'icon';
+      newIcon.href = iconUrl;
+      document.head.appendChild(newIcon);
+
+      // Close the menu
       document.getElementById('cloakMenu').classList.remove('show');
     }
 
