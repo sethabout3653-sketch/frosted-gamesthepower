@@ -7,7 +7,7 @@
   <title>FrostHub</title>
 
   <!-- Favicon References -->
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link id="dynamic-favicon" rel="icon" type="image/png" href="favicon.png">
   <link rel="shortcut icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="favicon.png">
 
@@ -26,6 +26,7 @@
       padding: 0;
       overflow: hidden;
       background: #000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     body {
@@ -50,17 +51,13 @@
       position: absolute;
       inset: 0;
       display: block;
-
       width: 100%;
       height: 100%;
-
       min-width: 100%;
       min-height: 100%;
-
       margin: 0;
       padding: 0;
       border: 0;
-
       background: #000;
     }
 
@@ -70,10 +67,123 @@
         height: 100dvh;
       }
     }
+
+    /* Tab Cloaker Control Styling */
+    .cloaker-container {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 999999;
+    }
+
+    .cloaker-btn {
+      background: rgba(20, 20, 20, 0.85);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 20px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cloaker-btn:hover {
+      background: rgba(40, 40, 40, 0.95);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .cloaker-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: rgba(18, 18, 18, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 6px;
+      width: 210px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(12px);
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .cloaker-menu.show {
+      display: flex;
+    }
+
+    .cloaker-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      color: #e0e0e0;
+      text-decoration: none;
+      font-size: 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .cloaker-option:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .cloaker-option img {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+      border-radius: 2px;
+    }
   </style>
 </head>
 
 <body>
+
+  <!-- Cloak Tab Cover Widget -->
+  <div class="cloaker-container">
+    <button class="cloaker-btn" onclick="toggleCloakMenu()">
+      🛡️ Cloak Tab Cover
+    </button>
+    <div class="cloaker-menu" id="cloakMenu">
+      <div class="cloaker-option" onclick="cloakTab('Google', 'https://www.google.com/favicon.ico')">
+        <img src="https://www.google.com/favicon.ico" alt="Google">
+        Google
+      </div>
+      <div class="cloaker-option" onclick="cloakTab('Classes', 'https://ssl.gstatic.com/classroom/favicon.png')">
+        <img src="https://ssl.gstatic.com/classroom/favicon.png" alt="Classroom">
+        Google Classroom
+      </div>
+      <div class="cloaker-option" onclick="cloakTab('Google Drive', 'https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png')">
+        <img src="https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png" alt="Drive">
+        Google Drive
+      </div>
+      <div class="cloaker-option" onclick="cloakTab('Google Slides', 'https://ssl.gstatic.com/docs/presentations/images/favicon5.ico')">
+        <img src="https://ssl.gstatic.com/docs/presentations/images/favicon5.ico" alt="Slides">
+        Google Slides
+      </div>
+      <div class="cloaker-option" onclick="cloakTab('Desmos | Graphing Calculator', 'https://www.desmos.com/favicon.ico')">
+        <img src="https://www.desmos.com/favicon.ico" alt="Desmos">
+        Desmos Calculator
+      </div>
+      <div class="cloaker-option" onclick="cloakTab('Clever | Portal', 'https://encrypted-tbn0.gstatic.com/images/branding/product/1x/clever_32dp.png')">
+        <img src="https://encrypted-tbn0.gstatic.com/images/q=tbn:ANd9GcRA7_xXcd6s27JQP2KAGwBRDht8GlpXCTLJe8NbeGN4MkxAnZBsKfvmRXM&s=10" alt="Clever">
+        Clever | Portal
+      </div>
+      <div class="cloaker-option" onclick="cloakTab('FrostHub', 'favicon.png')">
+        <img src="favicon.png" alt="Reset">
+        Reset to FrostHub
+      </div>
+    </div>
+  </div>
 
   <main class="embed-container">
     <iframe
@@ -107,6 +217,36 @@
       mozallowfullscreen>
     </iframe>
   </main>
+
+  <script>
+    function toggleCloakMenu() {
+      const menu = document.getElementById('cloakMenu');
+      menu.classList.toggle('show');
+    }
+
+    function cloakTab(title, iconUrl) {
+      document.title = title;
+      
+      let favicon = document.getElementById('dynamic-favicon');
+      if (!favicon) {
+        favicon = document.createElement('link');
+        favicon.id = 'dynamic-favicon';
+        favicon.rel = 'icon';
+        document.head.appendChild(favicon);
+      }
+      favicon.href = iconUrl;
+      
+      document.getElementById('cloakMenu').classList.remove('show');
+    }
+
+    // Close menu when clicking outside
+    document.addEventListener('click', function(event) {
+      const container = document.querySelector('.cloaker-container');
+      if (!container.contains(event.target)) {
+        document.getElementById('cloakMenu').classList.remove('show');
+      }
+    });
+  </script>
 
 </body>
 </html>
