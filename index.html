@@ -74,13 +74,24 @@
       bottom: 14px;
       right: 14px;
       z-index: 999999;
-      transition: opacity 0.2s ease, visibility 0.2s ease;
-    }
-
-    .cloaker-container.hidden {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    /* Shown state after initial delay */
+    .cloaker-container.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    /* Hidden in fullscreen mode */
+    .cloaker-container.fullscreen-hidden {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
     }
 
     .cloaker-btn {
@@ -153,13 +164,12 @@
   </style>
 
   <script>
-    // Restore saved cloak immediately on page load to prevent flashing
+    // Restore saved cloak immediately on script evaluation to prevent tab title flash
     (function() {
       const savedTitle = localStorage.getItem('frosthub_cloak_title');
       const savedIcon = localStorage.getItem('frosthub_cloak_icon');
       if (savedTitle && savedIcon) {
         document.title = savedTitle;
-        // We defer updating the icon link elements until DOMContentLoaded or run inline safely
         document.addEventListener('DOMContentLoaded', function() {
           applyCloak(savedTitle, savedIcon, false);
         });
@@ -171,7 +181,7 @@
 <body>
 
   <!-- Cloak Tab Cover Widget -->
-  <div class="cloaker-container">
+  <div class="cloaker-container" id="cloakerContainer">
     <button class="cloaker-btn" onclick="toggleCloakMenu()">
       🛡️ Cloak Tab Cover
     </button>
@@ -241,6 +251,14 @@
   </main>
 
   <script>
+    // Wait until the website fully loads, then wait 2.5 seconds to display the button
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        const container = document.getElementById('cloakerContainer');
+        container.classList.add('visible');
+      }, 2500);
+    });
+
     function toggleCloakMenu() {
       const menu = document.getElementById('cloakMenu');
       menu.classList.toggle('show');
@@ -249,11 +267,11 @@
     function applyCloak(title, iconUrl, saveToStorage = true) {
       document.title = title;
       
-      // Remove existing favicon tags
+      // Remove existing favicons
       const existingIcons = document.querySelectorAll("link[rel*='icon'], link[rel*='shortcut']");
       existingIcons.forEach(el => el.remove());
 
-      // Create new favicon tags
+      // Create & append new favicon elements
       const newFavicon = document.createElement('link');
       newFavicon.type = 'image/x-icon';
       newFavicon.rel = 'shortcut icon';
@@ -287,7 +305,7 @@
 
     // Close menu when clicking outside
     document.addEventListener('click', function(event) {
-      const container = document.querySelector('.cloaker-container');
+      const container = document.getElementById('cloakerContainer');
       if (!container.contains(event.target)) {
         document.getElementById('cloakMenu').classList.remove('show');
       }
@@ -295,25 +313,21 @@
 
     // Hide button when entering fullscreen mode
     function handleFullscreenChange() {
-      const container = document.querySelector('.cloaker-container');
+      const container = document.getElementById('cloakerContainer');
       const isFullscreen = document.fullscreenElement || 
                            document.webkitFullscreenElement || 
                            document.mozFullScreenElement || 
                            document.msFullscreenElement;
       
       if (isFullscreen) {
-        container.classList.add('hidden');
+        container.classList.add('fullscreen-hidden');
         document.getElementById('cloakMenu').classList.remove('show');
       } else {
-        container.classList.remove('hidden');
+        container.classList.remove('fullscreen-hidden');
       }
     }
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-  </script>
-
-</body>
-</html>
+    document.addEventListener('MSFullscreenChange
