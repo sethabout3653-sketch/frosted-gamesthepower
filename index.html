@@ -322,4 +322,48 @@
 
     function cloakTab(title, iconUrl) {
       applyCloak(title, iconUrl, true);
-      document.getElementById('cloakMenu').classList.remove('show
+      document.getElementById('cloakMenu').classList.remove('show');
+    }
+
+    function resetCloak() {
+      localStorage.removeItem('frosthub_cloak_title');
+      localStorage.removeItem('frosthub_cloak_icon');
+      applyCloak('FrostHub', 'favicon.png', false);
+      document.getElementById('cloakMenu').classList.remove('show');
+      window.location.reload();
+    }
+
+    // Close menu when clicking outside
+    document.addEventListener('click', function(event) {
+      const container = document.getElementById('cloakerContainer');
+      if (container && !container.contains(event.target)) {
+        document.getElementById('cloakMenu').classList.remove('show');
+      }
+    });
+
+    // Hide button when entering fullscreen mode
+    function handleFullscreenChange() {
+      const container = document.getElementById('cloakerContainer');
+      const isFullscreen = document.fullscreenElement || 
+                           document.webkitFullscreenElement || 
+                           document.mozFullScreenElement || 
+                           document.msFullscreenElement;
+      
+      if (container) {
+        if (isFullscreen) {
+          container.classList.add('fullscreen-hidden');
+          document.getElementById('cloakMenu').classList.remove('show');
+        } else {
+          container.classList.remove('fullscreen-hidden');
+        }
+      }
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+  </script>
+
+</body>
+</html>
