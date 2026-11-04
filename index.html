@@ -151,6 +151,21 @@
       border-radius: 2px;
     }
   </style>
+
+  <script>
+    // Restore saved cloak immediately on page load to prevent flashing
+    (function() {
+      const savedTitle = localStorage.getItem('frosthub_cloak_title');
+      const savedIcon = localStorage.getItem('frosthub_cloak_icon');
+      if (savedTitle && savedIcon) {
+        document.title = savedTitle;
+        // We defer updating the icon link elements until DOMContentLoaded or run inline safely
+        document.addEventListener('DOMContentLoaded', function() {
+          applyCloak(savedTitle, savedIcon, false);
+        });
+      }
+    })();
+  </script>
 </head>
 
 <body>
@@ -185,7 +200,7 @@
         <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRA7_xXcd6s27JQP2KAGwBRDht8GlpXCTLJe8NbeGN4MkxAnZBsKfvmRXM&s=10" alt="Clever">
         Clever | Portal
       </div>
-      <div class="cloaker-option" onclick="cloakTab('FrostHub', 'favicon.png')">
+      <div class="cloaker-option" onclick="resetCloak()">
         <img src="favicon.png" alt="Reset">
         Reset to FrostHub
       </div>
@@ -231,30 +246,43 @@
       menu.classList.toggle('show');
     }
 
-    function cloakTab(title, iconUrl) {
-      // 1. Change the Tab Title
+    function applyCloak(title, iconUrl, saveToStorage = true) {
       document.title = title;
       
-      // 2. Aggressively remove all existing favicon tags to force the browser to update
+      // Remove existing favicon tags
       const existingIcons = document.querySelectorAll("link[rel*='icon'], link[rel*='shortcut']");
       existingIcons.forEach(el => el.remove());
 
-      // 3. Create and append a brand new favicon link element
+      // Create new favicon tags
       const newFavicon = document.createElement('link');
       newFavicon.type = 'image/x-icon';
       newFavicon.rel = 'shortcut icon';
       newFavicon.href = iconUrl;
       document.head.appendChild(newFavicon);
 
-      // Also support standard icon link
       const newIcon = document.createElement('link');
       newIcon.type = 'image/x-icon';
       newIcon.rel = 'icon';
       newIcon.href = iconUrl;
       document.head.appendChild(newIcon);
 
-      // Close the menu
+      if (saveToStorage) {
+        localStorage.setItem('frosthub_cloak_title', title);
+        localStorage.setItem('frosthub_cloak_icon', iconUrl);
+      }
+    }
+
+    function cloakTab(title, iconUrl) {
+      applyCloak(title, iconUrl, true);
       document.getElementById('cloakMenu').classList.remove('show');
+    }
+
+    function resetCloak() {
+      localStorage.removeItem('frosthub_cloak_title');
+      localStorage.removeItem('frosthub_cloak_icon');
+      applyCloak('FrostHub', 'favicon.png', false);
+      document.getElementById('cloakMenu').classList.remove('show');
+      window.location.reload();
     }
 
     // Close menu when clicking outside
