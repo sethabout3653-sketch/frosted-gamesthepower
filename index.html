@@ -7,9 +7,9 @@
   <title>FrostHub</title>
 
   <!-- Favicon References -->
-  <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="shortcut icon" type="image/png" href="favicon.png">
-  <link rel="apple-touch-icon" href="favicon.png">
+  <link id="dynamic-favicon" rel="icon" type="image/png" href="favicon.png">
+  <link id="dynamic-shortcut-icon" rel="shortcut icon" type="image/png" href="favicon.png">
+  <link id="dynamic-apple-icon" rel="apple-touch-icon" href="favicon.png">
 
   <style>
     * {
@@ -74,6 +74,7 @@
 
   <main class="embed-container">
     <iframe
+      id="embedded-frame"
       src="https://melted.sethabout3653.workers.dev/"
       title="Melted AI Studio"
       allow="
@@ -104,6 +105,91 @@
       mozallowfullscreen>
     </iframe>
   </main>
+
+  <script>
+    (function () {
+      const iframe = document.getElementById('embedded-frame');
+      const ALLOWED_ORIGIN = 'https://melted.sethabout3653.workers.dev';
+
+      function setFavicon(href) {
+        if (typeof href !== 'string' || href.trim() === '') return;
+
+        let resolvedUrl = href.trim();
+        try {
+          resolvedUrl = new URL(resolvedUrl, ALLOWED_ORIGIN).href;
+        } catch (_) {
+          // Keep data: URIs or raw strings as-is
+        }
+
+        document.querySelectorAll('link[rel*="icon"]').forEach((el) => el.remove());
+
+        ['icon', 'shortcut icon', 'apple-touch-icon'].forEach((rel) => {
+          const link = document.createElement('link');
+          link.rel = rel;
+          link.href = resolvedUrl;
+          document.head.appendChild(link);
+        });
+      }
+
+      function applyMetadata(payload) {
+        if (!payload || typeof payload !== 'object') return;
+
+        if (typeof payload.title === 'string' && payload.title.trim() !== '') {
+          document.title = payload.title;
+        }
+
+        const iconUrl = payload.favicon || payload.icon;
+        if (typeof iconUrl === 'string' && iconUrl.trim() !== '') {
+          setFavicon(iconUrl);
+        }
+      }
+
+      // Cross-origin postMessage bridge (Approach #1)
+      window.addEventListener('message', (event) => {
+        if (event.origin !== ALLOWED_ORIGIN) return;
+        const data = event.data;
+        if (!data || typeof data !== 'object') return;
+
+        if (
+          data.type === 'TAB_METADATA_UPDATE' ||
+          data.type === 'CLOAK_UPDATE' ||
+          'title' in data ||
+          'favicon' in data ||
+          'icon' in data
+        ) {
+          applyMetadata(data);
+        }
+      });
+
+      // Same-origin fallback (if ever served from the same origin)
+      iframe.addEventListener('load', () => {
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow.document;
+          if (!doc || !doc.head) return;
+
+          const syncDoc = () => {
+            const iconEl = doc.querySelector('link[rel*="icon"]');
+            applyMetadata({
+              title: doc.title,
+              favicon: iconEl ? iconEl.href : ''
+            });
+          };
+
+          syncDoc();
+
+          const observer = new MutationObserver(syncDoc);
+          observer.observe(doc.head, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            characterData: true
+          });
+        } catch (_) {
+          // Expected when cross-origin; postMessage handles updates
+        }
+      });
+    })();
+  </script>
 
 </body>
 </html>
