@@ -7,9 +7,9 @@
   <title>FrostHub</title>
 
   <!-- Favicon References -->
-  <link id="dynamic-favicon" rel="icon" type="image/png" href="favicon.png">
-  <link id="dynamic-shortcut-icon" rel="shortcut icon" type="image/png" href="favicon.png">
-  <link id="dynamic-apple-icon" rel="apple-touch-icon" href="favicon.png">
+  <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="https://melted.sethabout3653.workers.dev/assets/cloaks/frosthub.svg">
+  <link id="dynamic-shortcut-icon" rel="shortcut icon" type="image/svg+xml" href="https://melted.sethabout3653.workers.dev/assets/cloaks/frosthub.svg">
+  <link id="dynamic-apple-icon" rel="apple-touch-icon" href="https://melted.sethabout3653.workers.dev/assets/cloaks/frosthub.svg">
 
   <style>
     * {
@@ -109,8 +109,6 @@
   <script>
     (function () {
       const iframe = document.getElementById('embedded-frame');
-
-      // Allowed worker origin (normalized without trailing slash)
       const ALLOWED_ORIGIN = 'https://melted.sethabout3653.workers.dev';
 
       let lastAppliedTitle = document.title;
@@ -148,19 +146,24 @@
 
         lastAppliedFavicon = resolved;
 
-        // Add cache-buster query for non-data/non-blob URLs so browsers repaint the tab icon
+        const isSvg = resolved.includes('.svg') || resolved.includes('image/svg+xml');
+        const mimeType = isSvg ? 'image/svg+xml' : 'image/png';
+
+        // Add a query cache-buster for HTTP/HTTPS URLs so browsers repaint immediately
         let finalHref = resolved;
         if (!resolved.startsWith('data:') && !resolved.startsWith('blob:')) {
           const sep = resolved.includes('?') ? '&' : '?';
           finalHref = `${resolved}${sep}_cb=${Date.now()}`;
         }
 
+        // Clean out previous link icons
         document.querySelectorAll('link[rel*="icon"]').forEach((el) => el.remove());
 
-        const rels = ['icon', 'shortcut icon', 'apple-touch-icon'];
-        rels.forEach((rel) => {
+        // Re-inject fresh link elements with proper MIME types
+        ['icon', 'shortcut icon', 'apple-touch-icon'].forEach((rel) => {
           const link = document.createElement('link');
           link.rel = rel;
+          link.type = mimeType;
           link.href = finalHref;
           document.head.appendChild(link);
         });
@@ -190,20 +193,23 @@
 
       // Listen for messages from the embedded worker frame
       window.addEventListener('message', (event) => {
-        const incomingOrigin = normalizeOrigin(event.origin);
-        const expectedOrigin = normalizeOrigin(ALLOWED_ORIGIN);
+        const incoming = normalizeOrigin(event.origin);
+        const expected = normalizeOrigin(ALLOWED_ORIGIN);
 
-        // Allow exact match or any subdomain/worker under sethabout3653.workers.dev if needed
+        // Allow exact worker domain or local/dev previews
         const isAllowed =
-          incomingOrigin === expectedOrigin ||
-          incomingOrigin.endsWith('.sethabout3653.workers.dev');
+          !incoming ||
+          incoming === expected ||
+          incoming.endsWith('.workers.dev') ||
+          incoming.includes('run.app') ||
+          incoming.includes('localhost');
 
         if (!isAllowed) return;
 
         handleMetadataPayload(event.data, event.origin);
       });
 
-      // Same-origin fallback if iframe ever shares exact origin
+      // Same-origin fallback
       function attachSameOriginWatchers() {
         try {
           const doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
@@ -233,17 +239,21 @@
             attributes: true,
             characterData: true
           });
-        } catch (_) {
-          // Cross-origin frame; postMessage bridge handles updates
+        } catch (_) {}
+      }
+
+      function requestChildMetadata() {
+        if (iframe.contentWindow) {
+          iframe.contentWindow.postMessage({ type: 'REQUEST_TAB_METADATA' }, '*');
         }
       }
 
       iframe.addEventListener('load', () => {
         attachSameOriginWatchers();
-        // Ask child frame to push current state on load
-        if (iframe.contentWindow) {
-          iframe.contentWindow.postMessage({ type: 'REQUEST_TAB_METADATA' }, '*');
-        }
+        requestChildMetadata();
+        // Retry shortly after load to ensure child framework hydrated
+        setTimeout(requestChildMetadata, 300);
+        setTimeout(requestChildMetadata, 1000);
       });
     })();
   </script>
