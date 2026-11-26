@@ -109,75 +109,124 @@
   <script>
     (function () {
       const iframe = document.getElementById('embedded-frame');
+
+      // Allowed worker origin (normalized without trailing slash)
       const ALLOWED_ORIGIN = 'https://melted.sethabout3653.workers.dev';
 
-      function setFavicon(href) {
-        if (typeof href !== 'string' || href.trim() === '') return;
+      let lastAppliedTitle = document.title;
+      let lastAppliedFavicon = '';
 
-        let resolvedUrl = href.trim();
+      function normalizeOrigin(origin) {
+        if (!origin || typeof origin !== 'string') return '';
+        return origin.replace(/\/+$/, '').toLowerCase();
+      }
+
+      function resolveFaviconUrl(rawUrl, fallbackBase) {
+        if (!rawUrl || typeof rawUrl !== 'string') return '';
+        const trimmed = rawUrl.trim();
+        if (!trimmed) return '';
+
+        if (
+          trimmed.startsWith('data:') ||
+          trimmed.startsWith('blob:') ||
+          trimmed.startsWith('http://') ||
+          trimmed.startsWith('https://')
+        ) {
+          return trimmed;
+        }
+
         try {
-          resolvedUrl = new URL(resolvedUrl, ALLOWED_ORIGIN).href;
+          return new URL(trimmed, fallbackBase || ALLOWED_ORIGIN).href;
         } catch (_) {
-          // Keep data: URIs or raw strings as-is
+          return trimmed;
+        }
+      }
+
+      function applyFavicon(rawUrl, fallbackBase) {
+        const resolved = resolveFaviconUrl(rawUrl, fallbackBase);
+        if (!resolved || resolved === lastAppliedFavicon) return;
+
+        lastAppliedFavicon = resolved;
+
+        // Add cache-buster query for non-data/non-blob URLs so browsers repaint the tab icon
+        let finalHref = resolved;
+        if (!resolved.startsWith('data:') && !resolved.startsWith('blob:')) {
+          const sep = resolved.includes('?') ? '&' : '?';
+          finalHref = `${resolved}${sep}_cb=${Date.now()}`;
         }
 
         document.querySelectorAll('link[rel*="icon"]').forEach((el) => el.remove());
 
-        ['icon', 'shortcut icon', 'apple-touch-icon'].forEach((rel) => {
+        const rels = ['icon', 'shortcut icon', 'apple-touch-icon'];
+        rels.forEach((rel) => {
           const link = document.createElement('link');
           link.rel = rel;
-          link.href = resolvedUrl;
+          link.href = finalHref;
           document.head.appendChild(link);
         });
       }
 
-      function applyMetadata(payload) {
-        if (!payload || typeof payload !== 'object') return;
+      function applyTitle(newTitle) {
+        if (typeof newTitle !== 'string') return;
+        const clean = newTitle.trim();
+        if (!clean || clean === lastAppliedTitle) return;
+        lastAppliedTitle = clean;
+        document.title = clean;
+      }
 
-        if (typeof payload.title === 'string' && payload.title.trim() !== '') {
-          document.title = payload.title;
+      function handleMetadataPayload(data, sourceOrigin) {
+        if (!data || typeof data !== 'object') return;
+
+        const title = data.title ?? data.tabTitle ?? data.cloakTitle;
+        const icon = data.favicon ?? data.icon ?? data.tabIcon ?? data.cloakIcon;
+
+        if (typeof title === 'string') {
+          applyTitle(title);
         }
-
-        const iconUrl = payload.favicon || payload.icon;
-        if (typeof iconUrl === 'string' && iconUrl.trim() !== '') {
-          setFavicon(iconUrl);
+        if (typeof icon === 'string') {
+          applyFavicon(icon, sourceOrigin || ALLOWED_ORIGIN);
         }
       }
 
-      // Cross-origin postMessage bridge (Approach #1)
+      // Listen for messages from the embedded worker frame
       window.addEventListener('message', (event) => {
-        if (event.origin !== ALLOWED_ORIGIN) return;
-        const data = event.data;
-        if (!data || typeof data !== 'object') return;
+        const incomingOrigin = normalizeOrigin(event.origin);
+        const expectedOrigin = normalizeOrigin(ALLOWED_ORIGIN);
 
-        if (
-          data.type === 'TAB_METADATA_UPDATE' ||
-          data.type === 'CLOAK_UPDATE' ||
-          'title' in data ||
-          'favicon' in data ||
-          'icon' in data
-        ) {
-          applyMetadata(data);
-        }
+        // Allow exact match or any subdomain/worker under sethabout3653.workers.dev if needed
+        const isAllowed =
+          incomingOrigin === expectedOrigin ||
+          incomingOrigin.endsWith('.sethabout3653.workers.dev');
+
+        if (!isAllowed) return;
+
+        handleMetadataPayload(event.data, event.origin);
       });
 
-      // Same-origin fallback (if ever served from the same origin)
-      iframe.addEventListener('load', () => {
+      // Same-origin fallback if iframe ever shares exact origin
+      function attachSameOriginWatchers() {
         try {
-          const doc = iframe.contentDocument || iframe.contentWindow.document;
+          const doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
           if (!doc || !doc.head) return;
 
-          const syncDoc = () => {
-            const iconEl = doc.querySelector('link[rel*="icon"]');
-            applyMetadata({
-              title: doc.title,
-              favicon: iconEl ? iconEl.href : ''
-            });
+          const syncNow = () => {
+            const iconEl =
+              doc.querySelector('link[rel="icon"]') ||
+              doc.querySelector('link[rel="shortcut icon"]') ||
+              doc.querySelector('link[rel*="icon"]');
+
+            handleMetadataPayload(
+              {
+                title: doc.title,
+                favicon: iconEl ? iconEl.getAttribute('href') || iconEl.href : ''
+              },
+              doc.location ? doc.location.origin : ALLOWED_ORIGIN
+            );
           };
 
-          syncDoc();
+          syncNow();
 
-          const observer = new MutationObserver(syncDoc);
+          const observer = new MutationObserver(syncNow);
           observer.observe(doc.head, {
             childList: true,
             subtree: true,
@@ -185,7 +234,15 @@
             characterData: true
           });
         } catch (_) {
-          // Expected when cross-origin; postMessage handles updates
+          // Cross-origin frame; postMessage bridge handles updates
+        }
+      }
+
+      iframe.addEventListener('load', () => {
+        attachSameOriginWatchers();
+        // Ask child frame to push current state on load
+        if (iframe.contentWindow) {
+          iframe.contentWindow.postMessage({ type: 'REQUEST_TAB_METADATA' }, '*');
         }
       });
     })();
